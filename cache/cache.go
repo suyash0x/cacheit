@@ -3,6 +3,7 @@ package cache
 import (
 	"cacheit/err"
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -21,6 +22,7 @@ type CacheItem struct {
 type Cache struct {
 	CacheData map[string]CacheItem
 	ExpirationModule
+	Mtx *sync.RWMutex
 }
 
 func (c *Cache) checkExpired(t time.Time) (expired bool) {
@@ -45,12 +47,17 @@ func (c *Cache) Add(key string, data interface{}, expirationTime time.Duration) 
 		expirationTime: validTime,
 		data:           data,
 	}
+	c.Mtx.Lock()
+	defer c.Mtx.Unlock()
 	c.CacheData[key] = cacheItem
 
 }
 
 // Check if Item with key is present in cache
 func (c *Cache) Has(key string) (found bool) {
+	c.Mtx.RLock()
+	defer c.Mtx.RUnlock()
+
 	_, found = c.CacheData[key]
 	return
 }
@@ -61,6 +68,9 @@ func (c *Cache) Get(key string) (interface{}, error) {
 	if !c.Has(key) {
 		return nil, errors.New(err.CACHE_NOT_FOUND)
 	}
+
+	c.Mtx.RLock()
+	defer c.Mtx.RUnlock()
 
 	item := c.CacheData[key]
 
@@ -77,6 +87,9 @@ func (c *Cache) Remove(key string) error {
 	if !c.Has(key) {
 		return errors.New(err.CACHE_NOT_FOUND)
 	}
+
+	c.Mtx.Lock()
+	defer c.Mtx.Unlock()
 
 	delete(c.CacheData, key)
 	return nil
