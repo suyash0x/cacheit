@@ -57,16 +57,27 @@ func (c *Cache) Has(key string) (found bool) {
 
 // Get Data with specific key
 func (c *Cache) Get(key string) (interface{}, error) {
-	item, found := c.CacheData[key]
 
-	if !found {
+	if !c.Has(key) {
 		return nil, errors.New(err.CACHE_NOT_FOUND)
 	}
 
-	expired := c.checkExpired(item.expirationTime)
+	item := c.CacheData[key]
 
-	if expired {
+	if c.checkExpired(item.expirationTime) {
 		return nil, errors.New(err.CACHE_EXPIRED)
 	}
+
 	return item, nil
+}
+
+// Remove cache with specified key
+func (c *Cache) Remove(key string) error {
+
+	if !c.Has(key) {
+		return errors.New(err.CACHE_NOT_FOUND)
+	}
+
+	delete(c.CacheData, key)
+	return nil
 }
