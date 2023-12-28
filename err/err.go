@@ -1,0 +1,6 @@
+package err
+
+const (
+	CACHE_EXPIRED   = "CACHE_EXPIRED"
+	CACHE_NOT_FOUND = "CACHE_NOT_FOUND"
+)

@@ -2,10 +2,17 @@ package cacheit
 
 import (
 	"cacheit/cache"
+	"cacheit/expiration"
 	"cacheit/shared"
 )
 
-func New(cc shared.CacheConfig) *cache.Cache {
+func New(cc shared.CacheConfig) (cacheInstance *cache.Cache) {
+	cacheInstance = &cache.Cache{
+		ExpirationModule: expiration.New(),
+		CacheData:        map[string]cache.CacheItem{},
+	}
 
-	return &cache.Cache{}
+	go cacheInstance.CheckForExpiration(cacheInstance)
+
+	return
 }
