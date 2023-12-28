@@ -14,7 +14,7 @@ func New(cc shared.CacheConfig) (cacheInstance *cache.Cache) {
 		Mtx:              &sync.RWMutex{},
 	}
 
-	go cacheInstance.CheckForExpiration(cacheInstance)
+	go cacheInstance.CheckForExpirationAndRemove(cacheInstance)
 
 	return
 }

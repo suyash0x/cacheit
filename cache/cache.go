@@ -7,16 +7,16 @@ import (
 	"time"
 )
 
-// Default Expiration Time. If not set explicitly, expiration time will be default to 5 mins
-var Det = time.Minute * 5
-
 type ExpirationModule interface {
-	CheckForExpiration(*Cache)
+	CheckForExpirationAndRemove(*Cache)
+	SetTime(time.Duration)
+	GetTime() time.Duration
+	ItemExpired(time.Time) (expired bool)
 }
 
 type CacheItem struct {
-	expirationTime time.Time
-	data           any
+	ExpirationTime time.Time
+	Data           any
 }
 
 type Cache struct {
@@ -25,27 +25,22 @@ type Cache struct {
 	Mtx *sync.RWMutex
 }
 
-func (c *Cache) checkExpired(t time.Time) (expired bool) {
-	expired = time.Now().After(t)
-	return
-}
-
 // SetDefaultExpirationTime sets the default expiration time for cache items.
 func (c *Cache) SetDefaultExpirationTime(t time.Duration) {
-	Det = t
+	c.ExpirationModule.SetTime(t)
 }
 
 // Get Default Expiration Time
 func (c *Cache) GetDefaultExpirationTime() time.Duration {
-	return Det
+	return c.ExpirationModule.GetTime()
 }
 
 // Add data with specified key and expiration time
 func (c *Cache) Add(key string, data interface{}, expirationTime time.Duration) {
 	validTime := time.Now().Add(expirationTime)
 	cacheItem := CacheItem{
-		expirationTime: validTime,
-		data:           data,
+		ExpirationTime: validTime,
+		Data:           data,
 	}
 	c.Mtx.Lock()
 	defer c.Mtx.Unlock()
@@ -74,7 +69,7 @@ func (c *Cache) Get(key string) (interface{}, error) {
 
 	item := c.CacheData[key]
 
-	if c.checkExpired(item.expirationTime) {
+	if c.ExpirationModule.ItemExpired(item.ExpirationTime) {
 		return nil, errors.New(err.CACHE_EXPIRED)
 	}
 
